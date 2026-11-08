@@ -1,5 +1,7 @@
 # Qwen3-0.6B · Protected IQ3_S
 
+[Download the weights and reproduction files on Hugging Face](https://huggingface.co/rexarrior/Qwen3-0.6B-Protected-IQ3_S).
+
 We quantized the official checkpoint directly via F32. Most projections (140) use IQ3_S. All 28 attention value and 28 MLP down projections receive extra bits: the first two value projections and the first down projection use Q5_K, and the other 53 use Q4_K. The tied embedding / output head uses Q5_K; 113 normalization tensors stay in F32. No additional fine-tuning. The calibration input is the importance matrix distributed by [Unsloth](https://huggingface.co/unsloth/Qwen3-0.6B-GGUF); we did not reconstruct its original calibration text.
 
 **Run:** Use the GGUF files from the matching release directory.

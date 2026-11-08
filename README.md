@@ -4,11 +4,11 @@ Five experiments on the same [Qwen3-0.6B checkpoint](https://huggingface.co/Qwen
 
 | Model | Fresh tool use | A6 | A8 | Strict English | Alice PPL ↓ |
 |---|---:|---:|---:|---:|---:|
-| [q4-q6-q8](models/q4-q6-q8.md) | 24/48 | 16/48 | 8/48 | 26/96 | 23.99 |
-| [protected-iq3](models/protected-iq3.md) | 4/48 | 4/48 | 5/48 | 22/96 | 28.15 |
-| [f5](models/f5.md) | 5/48 | 12/48 | 9/48 | 20/96 | 38.75 |
-| [p9](models/p9.md) | 0/48 | 0/48 | 7/48 | 13/96 | 35.47 |
-| [p10](models/p10.md) | 16/48 | 21/48 | 32/48 | 21/96 | 54.69 |
+| [q4-q6-q8](models/q4-q6-q8.md) · [weights](https://huggingface.co/rexarrior/Qwen3-0.6B-Q4-Q6-Q8-Embed) | 24/48 | 16/48 | 8/48 | 26/96 | 23.99 |
+| [protected-iq3](models/protected-iq3.md) · [weights](https://huggingface.co/rexarrior/Qwen3-0.6B-Protected-IQ3_S) | 4/48 | 4/48 | 5/48 | 22/96 | 28.15 |
+| [f5](models/f5.md) · [weights](https://huggingface.co/rexarrior/Qwen3-0.6B-F5-Terminal-Balanced) | 5/48 | 12/48 | 9/48 | 20/96 | 38.75 |
+| [p9](models/p9.md) · [weights](https://huggingface.co/rexarrior/Qwen3-0.6B-P9-VQ) | 0/48 | 0/48 | 7/48 | 13/96 | 35.47 |
+| [p10](models/p10.md) · [weights](https://huggingface.co/rexarrior/Qwen3-0.6B-P10-VQ) | 16/48 | 21/48 | 32/48 | 21/96 | 54.69 |
 
 Each model page describes what changed, how to load the result, and what passed. The P9 and P10 weights come from two independent training runs. P9 better predicts the text sample, while P10 completes more tool-use tasks. The tables distinguish this small diagnostic suite from independent evaluations.
 
