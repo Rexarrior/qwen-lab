@@ -1,0 +1,23 @@
+[
+  {
+    "checkpoint": "WSP38",
+    "repo_id": "rexarrior/Qwen3-0.6B-WSP38-GGUF",
+    "file": "Qwen3-0.6B-WSP38-F16.gguf",
+    "bytes": 1198182176,
+    "sha256": "e58288f8294296d77ea9e48a7b6ac80c084da9db8edb8a34bdedd23718e0f370"
+  },
+  {
+    "checkpoint": "v3-C7",
+    "repo_id": "rexarrior/Qwen3-0.6B-Tool-Repair-v3-C7-GGUF",
+    "file": "Qwen3-0.6B-Tool-Repair-v3-C7-F16.gguf",
+    "bytes": 1198182176,
+    "sha256": "d796e40c8e56058a730e6ff4315f00004ca360ed67f42170cbca6e69e8acbc35"
+  },
+  {
+    "checkpoint": "semantic08",
+    "repo_id": "rexarrior/Qwen3-0.6B-Tool-Repair-semantic08-GGUF",
+    "file": "Qwen3-0.6B-Tool-Repair-semantic08-F16.gguf",
+    "bytes": 1198182176,
+    "sha256": "b8a17f44f8cf8c09acf5acfa7bb110b4d48a148e53c4d642113fd27c5196e294"
+  }
+]

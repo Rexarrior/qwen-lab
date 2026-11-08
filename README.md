@@ -1,4 +1,11 @@
-# Qwen3 compression lab
+# Qwen Lab
+
+Experiments on Qwen3-0.6B examine how compression and targeted weight edits affect language and tool use.
+
+- [Compression](#compression) compares precision maps, low-rank recovery and vector codebooks.
+- [Fine-tuning and weight editing](fine-tuning/README.md) documents WSP38, v3-C7 and semantic08 with links to the measured GGUF weights, training methods and evaluation results.
+
+## Compression
 
 Five experiments on the same [Qwen3-0.6B checkpoint](https://huggingface.co/Qwen/Qwen3-0.6B/tree/c1899de289a04d12100db370d81485cdf75e47ca). How much of a small chat model survives when we spend fewer bits on each weight? We compared two fixed precision maps, a learned rank-eight correction, and two vector-codebook models.
 
