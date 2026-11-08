@@ -1,0 +1,18 @@
+{
+  "recipe": "VQ P9 books-only functional recovery on 249.62 MB hybrid kit",
+  "updates": 112,
+  "selected_update": 112,
+  "book_lr": 0.001,
+  "min_lr_ratio": 0.1,
+  "book_l2_anchor": 0.05,
+  "scales_frozen": true,
+  "embedding_frozen": true,
+  "codes_frozen": true,
+  "terminal_turn_weight": 1.75,
+  "terminal_first_token_gamma": 2.5,
+  "short_english_terminal_weight": true,
+  "language_KL_weight": 0.2,
+  "seed": 123,
+  "p4_recipe_sha256": "6be34ca76a525629a2eb10c65913bf8c730a8bb88317973c760a6c6b9fd37829",
+  "p5_recipe_sha256": "5484aa47908f92e14987bd5c59bb3e5cb7c38cf4e51dc617a340f25021b0dbad"
+}

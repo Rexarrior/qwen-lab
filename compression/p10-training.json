@@ -1,0 +1,16 @@
+{
+  "recipe": "VQ P10 bilinear recovery of FP32 master books + ±10% clamped scales on 249.53 MB hybrid kit",
+  "updates": 112,
+  "selected_update": 112,
+  "book_lr": 0.001,
+  "scale_lr": 6e-05,
+  "scale_clamp_rel": 0.1,
+  "min_lr_ratio": 0.15,
+  "embedding_frozen": true,
+  "codes_frozen": true,
+  "terminal_turn_weight": 1.75,
+  "terminal_first_token_gamma": 2.5,
+  "short_english_terminal_weight": true,
+  "language_KL_weight": 0.2,
+  "seed": 123
+}

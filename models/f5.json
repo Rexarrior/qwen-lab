@@ -1,0 +1,210 @@
+{
+  "run_id": "86442192-1ea6-4b6e-83eb-72178120a5d8",
+  "internal": {
+    "fresh_func_native": {
+      "value": 5,
+      "denominator": 48,
+      "status": "measured"
+    },
+    "oracle_next_action_exact": {
+      "value": 8,
+      "denominator": 24,
+      "status": "measured"
+    },
+    "oracle_full_continuation_success": {
+      "value": 0,
+      "denominator": 24,
+      "status": "measured"
+    },
+    "known_A8_native": {
+      "value": 9,
+      "denominator": 48,
+      "status": "measured"
+    },
+    "known_A6_native": {
+      "value": 12,
+      "denominator": 48,
+      "status": "measured"
+    },
+    "strict_English_total": {
+      "value": 20,
+      "denominator": 96,
+      "status": "measured"
+    },
+    "alice_nll": {
+      "ppl": 38.752164295594646,
+      "scored_tokens": 2040,
+      "evaluation_token_ids_file_sha256": "f514de3b0bb63cc4a4e9539c284b4df6e59dadd0ddf25c371991143a04aa0be0"
+    }
+  },
+  "external": {
+    "runs": [
+      "a966c0fd-5625-448b-a12a-b0e346c09bf4"
+    ],
+    "bfcl_v4_21_nonweb_categories": {
+      "simple_python": {
+        "correct_count": 147,
+        "total_count": 400,
+        "accuracy": 0.3675,
+        "inference_errors": 0
+      },
+      "simple_java": {
+        "correct_count": 24,
+        "total_count": 100,
+        "accuracy": 0.24,
+        "inference_errors": 0
+      },
+      "simple_javascript": {
+        "correct_count": 9,
+        "total_count": 50,
+        "accuracy": 0.18,
+        "inference_errors": 0
+      },
+      "multiple": {
+        "correct_count": 51,
+        "total_count": 200,
+        "accuracy": 0.255,
+        "inference_errors": 0
+      },
+      "parallel": {
+        "correct_count": 0,
+        "total_count": 200,
+        "accuracy": 0.0,
+        "inference_errors": 0
+      },
+      "parallel_multiple": {
+        "correct_count": 0,
+        "total_count": 200,
+        "accuracy": 0.0,
+        "inference_errors": 0
+      },
+      "irrelevance": {
+        "correct_count": 178,
+        "total_count": 240,
+        "accuracy": 0.7416666666666667,
+        "inference_errors": 0
+      },
+      "live_simple": {
+        "correct_count": 47,
+        "total_count": 258,
+        "accuracy": 0.1821705426356589,
+        "inference_errors": 0
+      },
+      "live_multiple": {
+        "correct_count": 78,
+        "total_count": 1053,
+        "accuracy": 0.07407407407407407,
+        "inference_errors": 0
+      },
+      "live_parallel": {
+        "correct_count": 0,
+        "total_count": 16,
+        "accuracy": 0.0,
+        "inference_errors": 0
+      },
+      "live_parallel_multiple": {
+        "correct_count": 0,
+        "total_count": 24,
+        "accuracy": 0.0,
+        "inference_errors": 0
+      },
+      "live_irrelevance": {
+        "correct_count": 629,
+        "total_count": 884,
+        "accuracy": 0.7115384615384616,
+        "inference_errors": 0
+      },
+      "live_relevance": {
+        "correct_count": 6,
+        "total_count": 16,
+        "accuracy": 0.375,
+        "inference_errors": 0
+      },
+      "multi_turn_base": {
+        "correct_count": 0,
+        "total_count": 200,
+        "accuracy": 0.0,
+        "inference_errors": 4
+      },
+      "multi_turn_miss_func": {
+        "correct_count": 0,
+        "total_count": 200,
+        "accuracy": 0.0,
+        "inference_errors": 3
+      },
+      "multi_turn_miss_param": {
+        "correct_count": 0,
+        "total_count": 200,
+        "accuracy": 0.0,
+        "inference_errors": 3
+      },
+      "multi_turn_long_context": {
+        "correct_count": 0,
+        "total_count": 200,
+        "accuracy": 0.0,
+        "inference_errors": 4
+      },
+      "memory_kv": {
+        "correct_count": 2,
+        "total_count": 155,
+        "accuracy": 0.012903225806451613,
+        "inference_errors": 0
+      },
+      "memory_vector": {
+        "correct_count": 1,
+        "total_count": 155,
+        "accuracy": 0.0064516129032258064,
+        "inference_errors": 0
+      },
+      "memory_rec_sum": {
+        "correct_count": 3,
+        "total_count": 155,
+        "accuracy": 0.01935483870967742,
+        "inference_errors": 0
+      },
+      "format_sensitivity": {
+        "correct_count": 13,
+        "total_count": 5200,
+        "accuracy": 0.0025,
+        "inference_errors": 0
+      }
+    },
+    "bfcl_families": {
+      "non_live": 0.129375,
+      "live": 0.0925240562546262,
+      "irrelevance": 0.7266025641025642,
+      "multi_turn": 0.0,
+      "memory": 0.012903225806451613,
+      "live_relevance": 0.375,
+      "format_sensitivity": 0.0025
+    },
+    "apibank": {
+      "total_generated_tasks": 753,
+      "offline_evaluable": 744,
+      "correct": 0,
+      "inference_errors": 0
+    },
+    "ifeval": {
+      "strict_prompt": {
+        "correct": 133,
+        "total": 541,
+        "accuracy": 0.24584103512014788
+      },
+      "strict_instruction": {
+        "correct": 311,
+        "total": 834,
+        "accuracy": 0.37290167865707435
+      },
+      "loose_prompt": {
+        "correct": 138,
+        "total": 541,
+        "accuracy": 0.25508317929759705
+      },
+      "loose_instruction": {
+        "correct": 319,
+        "total": 834,
+        "accuracy": 0.3824940047961631
+      }
+    }
+  }
+}

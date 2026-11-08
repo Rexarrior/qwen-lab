@@ -1,0 +1,321 @@
+{
+  "run_id": "86442192-1ea6-4b6e-83eb-72178120a5d8",
+  "internal": {
+    "fresh_func_native": {
+      "value": 24,
+      "denominator": 48,
+      "status": "measured"
+    },
+    "oracle_full_continuation_success": {
+      "value": 8,
+      "denominator": 24,
+      "status": "measured"
+    },
+    "known_A8_native": {
+      "value": 8,
+      "denominator": 48,
+      "status": "measured"
+    },
+    "known_A6_native": {
+      "value": 16,
+      "denominator": 48,
+      "status": "measured"
+    },
+    "strict_English_total": {
+      "value": 26,
+      "denominator": 96,
+      "status": "measured"
+    },
+    "alice_nll": {
+      "ppl": 23.98807187325474,
+      "scored_tokens": 2040,
+      "evaluation_token_ids_file_sha256": "f514de3b0bb63cc4a4e9539c284b4df6e59dadd0ddf25c371991143a04aa0be0"
+    },
+    "oracle_next_action_exact": {
+      "value": 8,
+      "denominator": 24,
+      "status": "measured"
+    }
+  },
+  "external": {
+    "runs": [
+      "98d69a04-3683-492f-be8e-576a4c3673d7"
+    ],
+    "bfcl_v4_21_nonweb_categories": {
+      "simple_python": {
+        "accuracy": 0.835,
+        "correct_count": 334,
+        "total_count": 400
+      },
+      "simple_java": {
+        "accuracy": 0.62,
+        "correct_count": 62,
+        "total_count": 100
+      },
+      "simple_javascript": {
+        "accuracy": 0.62,
+        "correct_count": 31,
+        "total_count": 50
+      },
+      "multiple": {
+        "accuracy": 0.84,
+        "correct_count": 168,
+        "total_count": 200
+      },
+      "parallel": {
+        "accuracy": 0.615,
+        "correct_count": 123,
+        "total_count": 200
+      },
+      "parallel_multiple": {
+        "accuracy": 0.595,
+        "correct_count": 119,
+        "total_count": 200
+      },
+      "irrelevance": {
+        "accuracy": 0.8041666666666667,
+        "correct_count": 193,
+        "total_count": 240
+      },
+      "live_simple": {
+        "accuracy": 0.5697674418604651,
+        "correct_count": 147,
+        "total_count": 258
+      },
+      "live_multiple": {
+        "accuracy": 0.49667616334283,
+        "correct_count": 523,
+        "total_count": 1053
+      },
+      "live_parallel": {
+        "accuracy": 0.5625,
+        "correct_count": 9,
+        "total_count": 16
+      },
+      "live_parallel_multiple": {
+        "accuracy": 0.375,
+        "correct_count": 9,
+        "total_count": 24
+      },
+      "live_irrelevance": {
+        "accuracy": 0.7183257918552036,
+        "correct_count": 635,
+        "total_count": 884
+      },
+      "live_relevance": {
+        "accuracy": 0.875,
+        "correct_count": 14,
+        "total_count": 16
+      },
+      "multi_turn_base": {
+        "accuracy": 0.045,
+        "correct_count": 9,
+        "total_count": 200
+      },
+      "multi_turn_miss_func": {
+        "accuracy": 0.03,
+        "correct_count": 6,
+        "total_count": 200
+      },
+      "multi_turn_miss_param": {
+        "accuracy": 0.025,
+        "correct_count": 5,
+        "total_count": 200
+      },
+      "multi_turn_long_context": {
+        "accuracy": 0.035,
+        "correct_count": 7,
+        "total_count": 200
+      },
+      "memory_kv": {
+        "accuracy": 0.012903225806451613,
+        "correct_count": 2,
+        "total_count": 155
+      },
+      "memory_vector": {
+        "accuracy": 0.012903225806451613,
+        "correct_count": 2,
+        "total_count": 155
+      },
+      "memory_rec_sum": {
+        "accuracy": 0.05806451612903226,
+        "correct_count": 9,
+        "total_count": 155
+      },
+      "format_sensitivity": {
+        "accuracy": 0.18,
+        "correct_count": 936,
+        "total_count": 5200,
+        "accuracy_max_delta": 53.5,
+        "accuracy_variance": 427.92,
+        "accuracy_std": 20.69,
+        "ret_fmt=python&tool_call_tag=True&func_doc_fmt=python&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.11,
+          "correct_count": 22,
+          "total_count": 200
+        },
+        "ret_fmt=python&tool_call_tag=True&func_doc_fmt=xml&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.325,
+          "correct_count": 65,
+          "total_count": 200
+        },
+        "ret_fmt=python&tool_call_tag=True&func_doc_fmt=json&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.125,
+          "correct_count": 25,
+          "total_count": 200
+        },
+        "ret_fmt=python&tool_call_tag=False&func_doc_fmt=python&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.465,
+          "correct_count": 93,
+          "total_count": 200
+        },
+        "ret_fmt=python&tool_call_tag=False&func_doc_fmt=xml&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.47,
+          "correct_count": 94,
+          "total_count": 200
+        },
+        "ret_fmt=python&tool_call_tag=False&func_doc_fmt=json&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.41,
+          "correct_count": 82,
+          "total_count": 200
+        },
+        "ret_fmt=json&tool_call_tag=True&func_doc_fmt=python&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.025,
+          "correct_count": 5,
+          "total_count": 200
+        },
+        "ret_fmt=json&tool_call_tag=True&func_doc_fmt=xml&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.035,
+          "correct_count": 7,
+          "total_count": 200
+        },
+        "ret_fmt=json&tool_call_tag=True&func_doc_fmt=json&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.005,
+          "correct_count": 1,
+          "total_count": 200
+        },
+        "ret_fmt=json&tool_call_tag=False&func_doc_fmt=python&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.52,
+          "correct_count": 104,
+          "total_count": 200
+        },
+        "ret_fmt=json&tool_call_tag=False&func_doc_fmt=xml&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.535,
+          "correct_count": 107,
+          "total_count": 200
+        },
+        "ret_fmt=json&tool_call_tag=False&func_doc_fmt=json&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.51,
+          "correct_count": 102,
+          "total_count": 200
+        },
+        "ret_fmt=verbose_xml&tool_call_tag=True&func_doc_fmt=python&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.0,
+          "correct_count": 0,
+          "total_count": 200
+        },
+        "ret_fmt=verbose_xml&tool_call_tag=True&func_doc_fmt=xml&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.0,
+          "correct_count": 0,
+          "total_count": 200
+        },
+        "ret_fmt=verbose_xml&tool_call_tag=True&func_doc_fmt=json&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.005,
+          "correct_count": 1,
+          "total_count": 200
+        },
+        "ret_fmt=verbose_xml&tool_call_tag=False&func_doc_fmt=python&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.1,
+          "correct_count": 20,
+          "total_count": 200
+        },
+        "ret_fmt=verbose_xml&tool_call_tag=False&func_doc_fmt=xml&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.02,
+          "correct_count": 4,
+          "total_count": 200
+        },
+        "ret_fmt=verbose_xml&tool_call_tag=False&func_doc_fmt=json&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.17,
+          "correct_count": 34,
+          "total_count": 200
+        },
+        "ret_fmt=concise_xml&tool_call_tag=True&func_doc_fmt=python&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.0,
+          "correct_count": 0,
+          "total_count": 200
+        },
+        "ret_fmt=concise_xml&tool_call_tag=True&func_doc_fmt=xml&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.0,
+          "correct_count": 0,
+          "total_count": 200
+        },
+        "ret_fmt=concise_xml&tool_call_tag=True&func_doc_fmt=json&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.0,
+          "correct_count": 0,
+          "total_count": 200
+        },
+        "ret_fmt=concise_xml&tool_call_tag=False&func_doc_fmt=python&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.005,
+          "correct_count": 1,
+          "total_count": 200
+        },
+        "ret_fmt=concise_xml&tool_call_tag=False&func_doc_fmt=xml&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.04,
+          "correct_count": 8,
+          "total_count": 200
+        },
+        "ret_fmt=concise_xml&tool_call_tag=False&func_doc_fmt=json&prompt_fmt=plaintext&style=classic": {
+          "accuracy": 0.015,
+          "correct_count": 3,
+          "total_count": 200
+        },
+        "ret_fmt=python&tool_call_tag=False&func_doc_fmt=json&prompt_fmt=markdown&style=classic": {
+          "accuracy": 0.365,
+          "correct_count": 73,
+          "total_count": 200
+        },
+        "ret_fmt=python&tool_call_tag=False&func_doc_fmt=json&prompt_fmt=plaintext&style=experimental": {
+          "accuracy": 0.425,
+          "correct_count": 85,
+          "total_count": 200
+        }
+      }
+    },
+    "bfcl_families": {
+      "non-live": 0.6854166666666667,
+      "live": 0.5092524056254626,
+      "irrelevance": 0.7612462292609352,
+      "live_relevance": 0.875,
+      "multi_turn": 0.03375,
+      "memory": 0.02795698924731183,
+      "format_sensitivity": 0.18
+    },
+    "apibank": {
+      "correct": 86,
+      "offline_evaluable": 744,
+      "accuracy": 0.11559139784946236
+    },
+    "ifeval": {
+      "strict_prompt": {
+        "correct": 301,
+        "total": 541,
+        "accuracy": 0.55637707948244
+      },
+      "strict_instruction": {
+        "correct": 545,
+        "total": 834,
+        "accuracy": 0.6534772182254197
+      },
+      "loose_prompt": {
+        "correct": 324,
+        "total": 541,
+        "accuracy": 0.5988909426987061
+      },
+      "loose_instruction": {
+        "correct": 580,
+        "total": 834,
+        "accuracy": 0.6954436450839329
+      }
+    }
+  }
+}

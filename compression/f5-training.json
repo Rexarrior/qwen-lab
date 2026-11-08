@@ -1,0 +1,17 @@
+{
+  "maximum_sequence_tokens": 1024,
+  "gradient_accumulation": 4,
+  "code_learning_rate": 0.01,
+  "mlp_learning_rate": 0.0001,
+  "film_learning_rate": 0.0001,
+  "language_KL_weight": 0.05,
+  "gradient_clip": 1.0,
+  "seed": 123,
+  "no_CPU_fallback": true,
+  "test_selection": false,
+  "gradient_checkpointing": false,
+  "freeze_codes": false,
+  "unfreeze_base_decoder": true,
+  "terminal_turn_weight": 1.75,
+  "terminal_first_token_gamma": 2.5
+}

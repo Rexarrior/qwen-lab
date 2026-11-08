@@ -1,0 +1,878 @@
+diff --git a/ggml/src/ggml-common.h b/ggml/src/ggml-common.h
+index 1dbbe32..37ec2a8 100644
+--- a/ggml/src/ggml-common.h
++++ b/ggml/src/ggml-common.h
+@@ -282,10 +282,12 @@ static_assert(sizeof(block_tq1_0) == sizeof(ggml_half) + QK_K / 64 + (QK_K - 4 *
+ 
+ // 2.0625 bpw
+ typedef struct {
+-    uint8_t qs[QK_K/4]; // 2 bits per element
+     ggml_half d;
++    ggml_half d1;
++    uint16_t book_id;
++    uint8_t qs[QK_K/4];
+ } block_tq2_0;
+-static_assert(sizeof(block_tq2_0) == sizeof(ggml_half) + QK_K / 4, "wrong tq2_0 block size/padding");
++static_assert(sizeof(block_tq2_0) == 2*sizeof(ggml_half) + sizeof(uint16_t) + QK_K / 4, "wrong tq2_0 block size/padding");
+ 
+ //
+ // Super-block quantization structures
+@@ -510,6 +512,21708 @@ GGML_TABLE_BEGIN(uint8_t, kmask_iq2xs, 8)
+     1, 2, 4, 8, 16, 32, 64, 128
+ GGML_TABLE_END()
+ 
+@@GENERATE_d4@@
++
+@@GENERATE_d2@@
++
+ GGML_TABLE_BEGIN(uint8_t, ksigns_iq2xs, 128)
+       0, 129, 130,   3, 132,   5,   6, 135, 136,   9,  10, 139,  12, 141, 142,  15,
+     144,  17,  18, 147,  20, 149, 150,  23,  24, 153, 154,  27, 156,  29,  30, 159,
+diff --git a/ggml/src/ggml-cpu/arch/arm/quants.c b/ggml/src/ggml-cpu/arch/arm/quants.c
+index cfbbf66..7d6d014 100644
+--- a/ggml/src/ggml-cpu/arch/arm/quants.c
++++ b/ggml/src/ggml-cpu/arch/arm/quants.c
+@@ -1572,114 +1572,7 @@ void ggml_vec_dot_tq1_0_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const vo
+ }
+ 
+ void ggml_vec_dot_tq2_0_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+-    assert(nrc == 1);
+-    UNUSED(nrc);
+-    UNUSED(bx);
+-    UNUSED(by);
+-    UNUSED(bs);
+-
+-    const block_tq2_0 * GGML_RESTRICT x = vx;
+-    const block_q8_K  * GGML_RESTRICT y = vy;
+-
+-    const int nb = n / QK_K;
+-
+-#if defined(__ARM_NEON)
+-    float sumf = 0.0f;
+-
+-    const uint8x16_t m3 = vdupq_n_u8(3);
+-
+-    for (int i = 0; i < nb; ++i) {
+-#if defined(__ARM_FEATURE_DOTPROD)
+-        int32x4_t sumi0 = vdupq_n_s32(0);
+-        int32x4_t sumi1 = vdupq_n_s32(0);
+-#else
+-        int16x8_t sumi0 = vdupq_n_s16(0);
+-        int16x8_t sumi1 = vdupq_n_s16(0);
+-#endif
+-
+-        for (size_t j = 0; j < sizeof(x->qs); j += 32) {
+-            uint8x16_t qx0 = vld1q_u8(x[i].qs + j);
+-            uint8x16_t qx1 = vld1q_u8(x[i].qs + j + 16);
+-            uint8x16_t qx2 = vshrq_n_u8(qx0, 2);
+-            uint8x16_t qx3 = vshrq_n_u8(qx1, 2);
+-            uint8x16_t qx4 = vshrq_n_u8(qx0, 4);
+-            uint8x16_t qx5 = vshrq_n_u8(qx1, 4);
+-            uint8x16_t qx6 = vshrq_n_u8(qx0, 6);
+-            uint8x16_t qx7 = vshrq_n_u8(qx1, 6);
+-
+-            int8x16_t sqx0 = vreinterpretq_s8_u8(vandq_u8(qx0, m3));
+-            int8x16_t sqx1 = vreinterpretq_s8_u8(vandq_u8(qx1, m3));
+-            int8x16_t sqx2 = vreinterpretq_s8_u8(vandq_u8(qx2, m3));
+-            int8x16_t sqx3 = vreinterpretq_s8_u8(vandq_u8(qx3, m3));
+-            int8x16_t sqx4 = vreinterpretq_s8_u8(vandq_u8(qx4, m3));
+-            int8x16_t sqx5 = vreinterpretq_s8_u8(vandq_u8(qx5, m3));
+-            int8x16_t sqx6 = vreinterpretq_s8_u8(vandq_u8(qx6, m3));
+-            int8x16_t sqx7 = vreinterpretq_s8_u8(vandq_u8(qx7, m3));
+-
+-            const int8x16_t qy0 = vld1q_s8(y[i].qs + j*4 +   0);
+-            const int8x16_t qy1 = vld1q_s8(y[i].qs + j*4 +  16);
+-            const int8x16_t qy2 = vld1q_s8(y[i].qs + j*4 +  32);
+-            const int8x16_t qy3 = vld1q_s8(y[i].qs + j*4 +  48);
+-            const int8x16_t qy4 = vld1q_s8(y[i].qs + j*4 +  64);
+-            const int8x16_t qy5 = vld1q_s8(y[i].qs + j*4 +  80);
+-            const int8x16_t qy6 = vld1q_s8(y[i].qs + j*4 +  96);
+-            const int8x16_t qy7 = vld1q_s8(y[i].qs + j*4 + 112);
+-
+-#if defined(__ARM_FEATURE_DOTPROD)
+-            sumi0 = vdotq_s32(sumi0, sqx0, qy0);
+-            sumi1 = vdotq_s32(sumi1, sqx1, qy1);
+-            sumi0 = vdotq_s32(sumi0, sqx2, qy2);
+-            sumi1 = vdotq_s32(sumi1, sqx3, qy3);
+-            sumi0 = vdotq_s32(sumi0, sqx4, qy4);
+-            sumi1 = vdotq_s32(sumi1, sqx5, qy5);
+-            sumi0 = vdotq_s32(sumi0, sqx6, qy6);
+-            sumi1 = vdotq_s32(sumi1, sqx7, qy7);
+-#else
+-            sumi0 = vmlal_s8(sumi0, vget_low_s8(sqx0), vget_low_s8(qy0));
+-            sumi1 = vmlal_s8(sumi1, vget_high_s8(sqx0), vget_high_s8(qy0));
+-            sumi0 = vmlal_s8(sumi0, vget_low_s8(sqx1), vget_low_s8(qy1));
+-            sumi1 = vmlal_s8(sumi1, vget_high_s8(sqx1), vget_high_s8(qy1));
+-            sumi0 = vmlal_s8(sumi0, vget_low_s8(sqx2), vget_low_s8(qy2));
+-            sumi1 = vmlal_s8(sumi1, vget_high_s8(sqx2), vget_high_s8(qy2));
+-            sumi0 = vmlal_s8(sumi0, vget_low_s8(sqx3), vget_low_s8(qy3));
+-            sumi1 = vmlal_s8(sumi1, vget_high_s8(sqx3), vget_high_s8(qy3));
+-            sumi0 = vmlal_s8(sumi0, vget_low_s8(sqx4), vget_low_s8(qy4));
+-            sumi1 = vmlal_s8(sumi1, vget_high_s8(sqx4), vget_high_s8(qy4));
+-            sumi0 = vmlal_s8(sumi0, vget_low_s8(sqx5), vget_low_s8(qy5));
+-            sumi1 = vmlal_s8(sumi1, vget_high_s8(sqx5), vget_high_s8(qy5));
+-            sumi0 = vmlal_s8(sumi0, vget_low_s8(sqx6), vget_low_s8(qy6));
+-            sumi1 = vmlal_s8(sumi1, vget_high_s8(sqx6), vget_high_s8(qy6));
+-            sumi0 = vmlal_s8(sumi0, vget_low_s8(sqx7), vget_low_s8(qy7));
+-            sumi1 = vmlal_s8(sumi1, vget_high_s8(sqx7), vget_high_s8(qy7));
+-#endif
+-        }
+-
+-        const int16x8_t ysum0 = vld1q_s16(y[i].bsums);
+-        const int16x8_t ysum1 = vld1q_s16(y[i].bsums + 8);
+-
+-        const float d = GGML_CPU_FP16_TO_FP32(x[i].d) * y[i].d;
+-
+-#if defined(__ARM_FEATURE_DOTPROD)
+-        sumi0 = vaddq_s32(sumi0, sumi1);
+-        sumi0 = vsubq_s32(sumi0, vpaddlq_s16(vaddq_s16(ysum0, ysum1)));
+-
+-        sumf += d * (float) vaddvq_s32(sumi0);
+-#else
+-        sumi0 = vaddq_s16(sumi0, sumi1);
+-        sumi0 = vsubq_s16(sumi0, vaddq_s16(ysum0, ysum1));
+-
+-        sumf += d * (float) vaddlvq_s16(sumi0);
+-#endif
+-    }
+-
+-    *s = sumf;
+-
+-#else
+-    UNUSED(x);
+-    UNUSED(y);
+-    UNUSED(nb);
+     ggml_vec_dot_tq2_0_q8_K_generic(n, s, bs, vx, bx, vy, by, nrc);
+-#endif
+ }
+ 
+ void ggml_vec_dot_q2_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+@@ -4254,66 +4147,6 @@ void ggml_vec_dot_iq4_nl_q8_0(int n, float * GGML_RESTRICT s, size_t bs, const v
+ }
+ 
+ void ggml_vec_dot_iq4_xs_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+-    assert(nrc == 1);
+-    UNUSED(nrc);
+-    UNUSED(bx);
+-    UNUSED(by);
+-    UNUSED(bs);
+-    assert(n % QK_K == 0);
+-
+-    const block_iq4_xs * GGML_RESTRICT x = vx;
+-    const block_q8_K   * GGML_RESTRICT y = vy;
+-
+-    const int nb = n / QK_K;
+-
+-#if defined __ARM_NEON
+-    const int8x16_t values = vld1q_s8(kvalues_iq4nl);
+-    const uint8x16_t m4b = vdupq_n_u8(0x0f);
+-    ggml_uint8x16x2_t q4bits;
+-    ggml_int8x16x4_t q4b;
+-    ggml_int8x16x4_t q8b;
+-    int32x4_t prod_1, prod_2;
+-
+-    float sumf = 0;
+-
+-    for (int ibl = 0; ibl < nb; ++ibl) {
+-
+-        const int8_t  * q8 = y[ibl].qs;
+-        const uint8_t * q4 = x[ibl].qs;
+-        uint16_t h = x[ibl].scales_h;
+-
+-        int sumi1 = 0, sumi2 = 0;
+-        for (int ib = 0; ib < QK_K/64; ++ib) {
+-
+-            q4bits = ggml_vld1q_u8_x2(q4); q4 += 32;
+-            q8b    = ggml_vld1q_s8_x4(q8); q8 += 64;
+-
+-            q4b.val[0] = ggml_vqtbl1q_s8(values, vandq_u8  (q4bits.val[0], m4b));
+-            q4b.val[1] = ggml_vqtbl1q_s8(values, vshrq_n_u8(q4bits.val[0], 4));
+-            q4b.val[2] = ggml_vqtbl1q_s8(values, vandq_u8  (q4bits.val[1], m4b));
+-            q4b.val[3] = ggml_vqtbl1q_s8(values, vshrq_n_u8(q4bits.val[1], 4));
+-
+-            prod_1 = ggml_vdotq_s32(ggml_vdotq_s32(vdupq_n_s32(0), q4b.val[0], q8b.val[0]), q4b.val[1], q8b.val[1]);
+-            prod_2 = ggml_vdotq_s32(ggml_vdotq_s32(vdupq_n_s32(0), q4b.val[2], q8b.val[2]), q4b.val[3], q8b.val[3]);
+-
+-            int ls1 = ((x[ibl].scales_l[ib] & 0xf) | ((h << 4) & 0x30)) - 32;
+-            int ls2 = ((x[ibl].scales_l[ib] >>  4) | ((h << 2) & 0x30)) - 32;
+-            h >>= 4;
+-            sumi1 += vaddvq_s32(prod_1) * ls1;
+-            sumi2 += vaddvq_s32(prod_2) * ls2;
+-
+-        }
+-
+-        sumf += GGML_CPU_FP16_TO_FP32(x[ibl].d) * y[ibl].d * (sumi1 + sumi2);
+-    }
+-
+-    *s = sumf;
+-
+-#else
+-    UNUSED(x);
+-    UNUSED(y);
+-    UNUSED(nb);
+     ggml_vec_dot_iq4_xs_q8_K_generic(n, s, bs, vx, bx, vy, by, nrc);
+-#endif
+ }
+ 
+diff --git a/ggml/src/ggml-cpu/ggml-cpu.c b/ggml/src/ggml-cpu/ggml-cpu.c
+index 5428d51..58095d6 100644
+--- a/ggml/src/ggml-cpu/ggml-cpu.c
++++ b/ggml/src/ggml-cpu/ggml-cpu.c
+@@ -386,7 +386,7 @@ static const struct ggml_type_traits_cpu type_traits_cpu[GGML_TYPE_COUNT] = {
+     [GGML_TYPE_IQ4_XS] = {
+         .from_float               = quantize_row_iq4_xs,
+         .vec_dot                  = ggml_vec_dot_iq4_xs_q8_K,
+-        .vec_dot_type             = GGML_TYPE_Q8_K,
++        .vec_dot_type             = GGML_TYPE_F16,
+         .nrows                    = 1,
+     },
+     [GGML_TYPE_Q8_K] = {
+@@ -407,7 +407,7 @@ static const struct ggml_type_traits_cpu type_traits_cpu[GGML_TYPE_COUNT] = {
+     [GGML_TYPE_TQ2_0] = {
+         .from_float               = quantize_row_tq2_0,
+         .vec_dot                  = ggml_vec_dot_tq2_0_q8_K,
+-        .vec_dot_type             = GGML_TYPE_Q8_K,
++        .vec_dot_type             = GGML_TYPE_F16,
+         .nrows                    = 1,
+     },
+     [GGML_TYPE_I32] = {
+diff --git a/ggml/src/ggml-cpu/quants.c b/ggml/src/ggml-cpu/quants.c
+index 5e36459..5dc1bb2 100644
+--- a/ggml/src/ggml-cpu/quants.c
++++ b/ggml/src/ggml-cpu/quants.c
+@@ -1,3 +1,4 @@
++#include "vec.h"
+ #define GGML_COMMON_IMPL_C
+ #include "ggml-common.h"
+ 
+@@ -531,35 +532,33 @@ void ggml_vec_dot_tq1_0_q8_K_generic(int n, float * GGML_RESTRICT s, size_t bs,
+ }
+ 
+ void ggml_vec_dot_tq2_0_q8_K_generic(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+-    assert(nrc == 1);
+-    UNUSED(nrc);
+-    UNUSED(bx);
+-    UNUSED(by);
+-    UNUSED(bs);
+-
+-    const block_tq2_0 * GGML_RESTRICT x = vx;
+-    const block_q8_K  * GGML_RESTRICT y = vy;
+-
++    assert(n % QK_K == 0 && n <= 4096);
++    const block_tq2_0 * GGML_RESTRICT x = (const block_tq2_0 *)vx;
+     const int nb = n / QK_K;
+-    float sumf = 0.0f;
+-
++    ggml_fp16_t row_f16[4096];
++    ggml_fp16_t * dst = row_f16;
+     for (int i = 0; i < nb; ++i) {
+-        int32_t sumi = 0;
+-
+-        for (size_t j = 0; j < sizeof(x->qs); j += 32) {
+-            for (size_t l = 0; l < 4; ++l) {
+-                for (size_t k = 0; k < 32; ++k) {
+-                    sumi += y[i].qs[j*4 + l*32 + k] * (((x[i].qs[j + k] >> (l*2)) & 3) - 1);
+-                }
+-            }
++        const float d0 = GGML_CPU_FP16_TO_FP32(x[i].d);
++        const float d1 = GGML_CPU_FP16_TO_FP32(x[i].d1);
++        const uint16_t * book = vq_books_d4_u16 + (size_t)x[i].book_id * 1024;
++        for (int j = 0; j < 32; ++j) {
++            const uint16_t * bc = book + (size_t)x[i].qs[j] * 4;
++            dst[0] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[0]) * d0);
++            dst[1] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[1]) * d0);
++            dst[2] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[2]) * d0);
++            dst[3] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[3]) * d0);
++            dst += 4;
++        }
++        for (int j = 32; j < 64; ++j) {
++            const uint16_t * bc = book + (size_t)x[i].qs[j] * 4;
++            dst[0] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[0]) * d1);
++            dst[1] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[1]) * d1);
++            dst[2] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[2]) * d1);
++            dst[3] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[3]) * d1);
++            dst += 4;
+         }
+-
+-        const float d = y[i].d * GGML_CPU_FP16_TO_FP32(x[i].d);
+-
+-        sumf += (float) sumi * d;
+     }
+-
+-    *s = sumf;
++    ggml_vec_dot_f16(n, s, bs, row_f16, bx, (ggml_fp16_t *)vy, by, nrc);
+ }
+ 
+ void ggml_vec_dot_q2_K_q8_K_generic(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+@@ -1281,49 +1280,31 @@ void ggml_vec_dot_iq4_nl_q8_0_generic(int n, float * GGML_RESTRICT s, size_t bs,
+ }
+ 
+ void ggml_vec_dot_iq4_xs_q8_K_generic(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+-    assert(nrc == 1);
+-    UNUSED(nrc);
+-    UNUSED(bx);
+-    UNUSED(by);
+-    UNUSED(bs);
+-    assert(n % QK_K == 0);
+-
+-    const block_iq4_xs * GGML_RESTRICT x = vx;
+-    const block_q8_K   * GGML_RESTRICT y = vy;
+-
++    assert(n % QK_K == 0 && n <= 4096);
++    const block_iq4_xs * GGML_RESTRICT x = (const block_iq4_xs *)vx;
+     const int nb = n / QK_K;
+-
+-    float sumf = 0;
+-    for (int ibl = 0; ibl < nb; ++ibl) {
+-        const float d4d8 = GGML_CPU_FP16_TO_FP32(x[ibl].d) * y[ibl].d;
+-        uint16_t h = x[ibl].scales_h;
+-        const uint8_t * qs = x[ibl].qs;
+-        const int8_t  * q8 = y[ibl].qs;
+-        for (int ib = 0; ib < QK_K/32; ib += 2) {
+-            const uint8_t ls1 = (x[ibl].scales_l[ib/2] & 0xf) | ((h << 4) & 0x30);
+-            const uint8_t ls2 = (x[ibl].scales_l[ib/2] >>  4) | ((h << 2) & 0x30);
+-            h >>= 4;
+-            const float d1 = d4d8*(ls1 - 32);
+-            const float d2 = d4d8*(ls2 - 32);
+-            int sumi1 = 0, sumi2 = 0;
+-            for (int j = 0; j < 16; ++j) {
+-                sumi1 += q8[j+ 0] * kvalues_iq4nl[qs[j] & 0xf];
+-                sumi2 += q8[j+16] * kvalues_iq4nl[qs[j] >>  4];
+-            }
+-            sumf += d1 * (sumi1 + sumi2);
+-            qs += 16;
+-            q8 += 32;
+-            sumi1 = sumi2 = 0;
+-            for (int j = 0; j < 16; ++j) {
+-                sumi1 += q8[j+ 0] * kvalues_iq4nl[qs[j] & 0xf];
+-                sumi2 += q8[j+16] * kvalues_iq4nl[qs[j] >>  4];
+-            }
+-            sumf += d2 * (sumi1 + sumi2);
+-            qs += 16;
+-            q8 += 32;
++    ggml_fp16_t row_f16[4096];
++    ggml_fp16_t * dst = row_f16;
++    for (int i = 0; i < nb; ++i) {
++        const float d0 = GGML_CPU_FP16_TO_FP32(x[i].d);
++        ggml_fp16_t d1_h;
++        memcpy(&d1_h, &x[i].scales_h, sizeof(ggml_fp16_t));
++        const float d1 = GGML_CPU_FP16_TO_FP32(d1_h);
++        const uint16_t * book = vq_books_d2_u16 + (size_t)x[i].scales_l[0] * 512;
++        for (int j = 0; j < 64; ++j) {
++            const uint16_t * bc = book + (size_t)x[i].qs[j] * 2;
++            dst[0] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[0]) * d0);
++            dst[1] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[1]) * d0);
++            dst += 2;
++        }
++        for (int j = 64; j < 128; ++j) {
++            const uint16_t * bc = book + (size_t)x[i].qs[j] * 2;
++            dst[0] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[0]) * d1);
++            dst[1] = GGML_CPU_FP32_TO_FP16(GGML_CPU_FP16_TO_FP32(bc[1]) * d1);
++            dst += 2;
+         }
+     }
+-    *s = sumf;
++    ggml_vec_dot_f16(n, s, bs, row_f16, bx, (ggml_fp16_t *)vy, by, nrc);
+ }
+ 
+ // ============================ 4-bit non-linear quants
+diff --git a/ggml/src/ggml-cpu/tiled/tiled.cpp b/ggml/src/ggml-cpu/tiled/tiled.cpp
+index 77e1a99..9c16ef1 100644
+--- a/ggml/src/ggml-cpu/tiled/tiled.cpp
++++ b/ggml/src/ggml-cpu/tiled/tiled.cpp
+@@ -619,7 +619,7 @@ static bool ggml_tiled_supported(const struct ggml_tensor * src0,
+         case GGML_TYPE_Q4_K:
+         case GGML_TYPE_Q3_K:
+         case GGML_TYPE_Q2_K:
+-        case GGML_TYPE_IQ4_XS:
++        // case GGML_TYPE_IQ4_XS:
+         case GGML_TYPE_IQ2_XXS:
+         case GGML_TYPE_IQ2_XS:
+         case GGML_TYPE_IQ2_S:
+@@ -1178,8 +1178,6 @@ static bool ggml_tiled_matmul_type_dispatch(const struct ggml_compute_params * p
+             return tiled_matmul_dispatch<block_q3_K, 16, false,  4, true>(params, dst, expert_rows, cur_a, cne1, scratch);
+         case GGML_TYPE_Q2_K:
+             return tiled_matmul_dispatch<block_q2_K, 16, true,  0, false>(params, dst, expert_rows, cur_a, cne1, scratch);
+-        case GGML_TYPE_IQ4_XS:
+-            return tiled_matmul_dispatch<block_iq4_xs, 32, false, 128, false>(params, dst, expert_rows, cur_a, cne1, scratch);
+         case GGML_TYPE_IQ2_XXS:
+             return tiled_matmul_dispatch<block_iq2_xxs, 32, false, 128, true>(params, dst, expert_rows, cur_a, cne1, scratch);
+         case GGML_TYPE_IQ2_XS:
+diff --git a/ggml/src/ggml-metal/ggml-metal-device.cpp b/ggml/src/ggml-metal/ggml-metal-device.cpp
+index b70129d..649e3ef 100644
+--- a/ggml/src/ggml-metal/ggml-metal-device.cpp
++++ b/ggml/src/ggml-metal/ggml-metal-device.cpp
+@@ -1181,12 +1181,13 @@ ggml_metal_pipeline_with_params ggml_metal_library_get_pipeline_mul_mv(ggml_meta
+             {
+                 nsg = N_SG_IQ4_XS;
+                 nr0 = N_R0_IQ4_XS;
+-                smem = 32*sizeof(float);
++                smem = 1024;
+             } break;
+         case GGML_TYPE_TQ2_0:
+             {
+                 nsg = N_SG_TQ2_0;
+                 nr0 = N_R0_TQ2_0;
++                smem = 2048;
+             } break;
+         default:
+             {
+@@ -1506,12 +1507,13 @@ ggml_metal_pipeline_with_params ggml_metal_library_get_pipeline_mul_mv_id(ggml_m
+             {
+                 nsg = N_SG_IQ4_XS;
+                 nr0 = N_R0_IQ4_XS;
+-                smem = 32*sizeof(float);
++                smem = 1024;
+             } break;
+         case GGML_TYPE_TQ2_0:
+             {
+                 nsg = N_SG_TQ2_0;
+                 nr0 = N_R0_TQ2_0;
++                smem = 2048;
+             } break;
+         default:
+             {
+diff --git a/ggml/src/ggml-metal/kernels/dequantize.h b/ggml/src/ggml-metal/kernels/dequantize.h
+index 54e00fa..ee901b1 100644
+--- a/ggml/src/ggml-metal/kernels/dequantize.h
++++ b/ggml/src/ggml-metal/kernels/dequantize.h
+@@ -701,39 +701,33 @@ void dequantize_iq4_nl_t4(device const block_iq4_nl * xb, short il, thread type4
+ 
+ template <typename type4x4>
+ void dequantize_iq4_xs(device const block_iq4_xs * xb, short il, thread type4x4 & reg) {
+-    // il is 0...15 for QK_K = 256 => index of block of 32 is il/2
+-    const int ib32 = il/2;
+-    il = il%2;
+-    // il = 0 or 1. il = 0 processes the first 16 quants in a block of 32, il = 1 the second 16
+-    device const uint32_t * q4 = (device const uint32_t *)xb->qs + 4*ib32;
+-    const int ls = ((xb->scales_l[ib32/2] >> 4*(ib32%2)) & 0xf) | (((xb->scales_h >> 2*ib32) & 3) << 4);
+-    const float d = (float)xb->d * (ls - 32);
+-    uint32_t aux32;
+-    thread const uint8_t * q8 = (thread const uint8_t *)&aux32;
++    const float d = (il < 8) ? (float)xb->d : (float)as_type<half>(xb->scales_h);
++    const uint book_off = (uint)xb->scales_l[0] * 512u;
++    device const uint8_t * qs = xb->qs + 8 * il;
++    float4x4 reg_f;
+     for (int i = 0; i < 4; ++i) {
+-        aux32 = (q4[i] >> 4*il) & 0x0f0f0f0f;
+-        reg[i][0] = d * kvalues_iq4nl_f[q8[0]];
+-        reg[i][1] = d * kvalues_iq4nl_f[q8[1]];
+-        reg[i][2] = d * kvalues_iq4nl_f[q8[2]];
+-        reg[i][3] = d * kvalues_iq4nl_f[q8[3]];
++        const uint c0 = book_off + (uint)qs[2*i + 0] * 2u;
++        const uint c1 = book_off + (uint)qs[2*i + 1] * 2u;
++        reg_f[i][0] = (float)((half)((float)as_type<half>(vq_books_d2_u16[c0 + 0]) * d));
++        reg_f[i][1] = (float)((half)((float)as_type<half>(vq_books_d2_u16[c0 + 1]) * d));
++        reg_f[i][2] = (float)((half)((float)as_type<half>(vq_books_d2_u16[c1 + 0]) * d));
++        reg_f[i][3] = (float)((half)((float)as_type<half>(vq_books_d2_u16[c1 + 1]) * d));
+     }
++    reg = (type4x4) reg_f;
+ }
+ 
+ template <typename type4x4>
+ void dequantize_tq2_0(device const block_tq2_0 * xb, short il, thread type4x4 & reg) {
+-    device const uint8_t * qs = xb->qs;
+-    const float d = xb->d;
+-
++    const float d = (il < 8) ? (float)xb->d : (float)xb->d1;
++    const uint book_off = (uint)xb->book_id * 1024u;
++    device const uint8_t * qs = xb->qs + 4 * il;
+     float4x4 reg_f;
+-
+-    // 2 bits per element, 4 elements per byte, 128 elements per 32-byte group
+-    const short base = il * 16;
+-    for (int k = 0; k < 16; k++) {
+-        const int i = base + k;
+-        const int byte = ((i >> 7) & 1) * 32 + (i & 31);
+-        const int l = (i >> 5) & 3;
+-        reg_f[k/4][k%4] = d * (float)(((qs[byte] >> (2*l)) & 3) - 1);
++    for (int i = 0; i < 4; ++i) {
++        const uint c = book_off + (uint)qs[i] * 4u;
++        reg_f[i][0] = (float)((half)((float)as_type<half>(vq_books_d4_u16[c + 0]) * d));
++        reg_f[i][1] = (float)((half)((float)as_type<half>(vq_books_d4_u16[c + 1]) * d));
++        reg_f[i][2] = (float)((half)((float)as_type<half>(vq_books_d4_u16[c + 2]) * d));
++        reg_f[i][3] = (float)((half)((float)as_type<half>(vq_books_d4_u16[c + 3]) * d));
+     }
+-
+     reg = (type4x4) reg_f;
+ }
+diff --git a/ggml/src/ggml-metal/kernels/mul_mv.metal b/ggml/src/ggml-metal/kernels/mul_mv.metal
+index 0d1069f..3c84dfb 100644
+--- a/ggml/src/ggml-metal/kernels/mul_mv.metal
++++ b/ggml/src/ggml-metal/kernels/mul_mv.metal
+@@ -2931,83 +2931,75 @@ void kernel_mul_mv_iq4_xs_f32_impl(
+         ushort tiisg,
+         ushort sgitg) {
+     const short NSG = FC_mul_mv_nsg;
+-
+-    threadgroup float * shmem_f32 = (threadgroup float *) shmem;
++    const int nb = args.ne00 / QK_K;
+ 
+     const int r0 = tgpig.x;
+     const int r1 = tgpig.y;
+     const int im = tgpig.z;
+     const int first_row = (r0 * NSG + sgitg) * NR0;
+ 
+-    const uint i12 = im%FC_mul_mv_ne12;
+-    const uint i13 = im/FC_mul_mv_ne12;
+-
+-    const uint64_t offset0 = first_row*args.nb01 + (i12/FC_mul_mv_r2)*args.nb02 + (i13/FC_mul_mv_r3)*args.nb03;
+-    const uint64_t offset1 =        r1*args.nb11 + (i12        )*args.nb12 + (i13        )*args.nb13;
+-
+-    device const block_iq4_xs * x = (device const block_iq4_xs *) (src0 + offset0);
+-    device const float        * y = (device const float        *) (src1 + offset1);
+-
+-    const int nb   = args.ne00/QK_K;
+-    const int ns01 = args.nb01/args.nb00;
++    const uint i12 = im % FC_mul_mv_ne12;
++    const uint i13 = im / FC_mul_mv_ne12;
+ 
+-    const short ix = tiisg/16;  // 0 or 1
+-    const short it = tiisg%16;  // 0...15
+-    const short ib = it/2;
+-    const short il = it%2;
++    const uint64_t offset1 = r1 * args.nb11 + i12 * args.nb12 + i13 * args.nb13;
++    device const float * y = (device const float *)(src1 + offset1);
+ 
+-    shmem_f32[tiisg] = kvalues_iq4nl_f[tiisg%16];
++    threadgroup half2 * sbook = (threadgroup half2 *)shmem;
++    const uint book_id = ((device const block_iq4_xs *)src0)[0].scales_l[0];
++    const uint book_off = book_id * 512u;
++    const ushort tid = sgitg * 32 + tiisg;
++    const ushort nthreads = NSG * 32;
++    for (ushort idx = tid; idx < 256; idx += nthreads) {
++        const uint c = book_off + idx * 2u;
++        sbook[idx] = half2(as_type<half>(vq_books_d2_u16[c + 0]),
++                           as_type<half>(vq_books_d2_u16[c + 1]));
++    }
+     threadgroup_barrier(mem_flags::mem_threadgroup);
+ 
+-    float4 yl[4];
+-    float sumf[NR0]={0.f};
+-
+-    device const float * yb = y + ix * QK_K + ib * 32 + il * 8;
+-
+-    uint32_t aux32[2];
+-    thread const uint8_t * q8 = (thread const uint8_t *)aux32;
+-
+-    float4 qf1, qf2;
+-
+-    // [TAG_MUL_MV_WEIRD]
+-    for (int ibl = ix; ibl < nb && ibl < ns01; ibl += 2) {
+-        device const float4 * y4 = (device const float4 *)yb;
+-        yl[0] = y4[0];
+-        yl[1] = y4[4];
+-        yl[2] = y4[1];
+-        yl[3] = y4[5];
+-
+-        for (short row = 0; row < NR0; ++row) {
+-            device const block_iq4_xs & xb = x[row*ns01 + ibl];
+-            device const uint32_t * q4 = (device const uint32_t *)(xb.qs + 16*ib + 8*il);
+-
+-            float4 acc1 = {0.f}, acc2 = {0.f};
+-
+-            aux32[0] = (q4[0]     ) & 0x0f0f0f0f;
+-            aux32[1] = (q4[0] >> 4) & 0x0f0f0f0f;
+-            qf1 = {shmem_f32[q8[0]], shmem_f32[q8[1]], shmem_f32[q8[2]], shmem_f32[q8[3]]};
+-            qf2 = {shmem_f32[q8[4]], shmem_f32[q8[5]], shmem_f32[q8[6]], shmem_f32[q8[7]]};
+-            acc1 += yl[0] * qf1;
+-            acc2 += yl[1] * qf2;
+-
+-            aux32[0] = (q4[1]     ) & 0x0f0f0f0f;
+-            aux32[1] = (q4[1] >> 4) & 0x0f0f0f0f;
+-            qf1 = {shmem_f32[q8[0]], shmem_f32[q8[1]], shmem_f32[q8[2]], shmem_f32[q8[3]]};
+-            qf2 = {shmem_f32[q8[4]], shmem_f32[q8[5]], shmem_f32[q8[6]], shmem_f32[q8[7]]};
+-            acc1 += yl[2] * qf1;
+-            acc2 += yl[3] * qf2;
+-
+-            acc1 += acc2;
+-
+-            const int ls = (((xb.scales_l[ib/2] >> 4*(ib%2)) & 0xf) | (((xb.scales_h >> 2*ib) & 3) << 4)) - 32;
+-            sumf[row] += (float)xb.d * ls * (acc1[0] + acc1[1] + acc1[2] + acc1[3]);
+-        }
+-
+-        yb += 2 * QK_K;
++    device const block_iq4_xs * ax[NR0];
++    for (int row = 0; row < NR0; ++row) {
++        const int r_idx = (first_row + row < args.ne01) ? (first_row + row) : 0;
++        const uint64_t offset0 = r_idx * args.nb01 + (i12 / FC_mul_mv_r2) * args.nb02 + (i13 / FC_mul_mv_r3) * args.nb03;
++        ax[row] = (device const block_iq4_xs *)(src0 + offset0);
+     }
+ 
+-    device float * dst_f32 = (device float *) dst + (uint64_t)im*args.ne0*args.ne1 + (uint64_t)r1*args.ne0;
++    float sumf[NR0] = {0.f};
++
++    constexpr short NBLOCK = 4;
++    constexpr short NB = 32 / NBLOCK;
++    const short blk = tiisg / NB;
++    const short htg = tiisg % NB;
+ 
++    for (int ib = blk; ib < nb; ib += NBLOCK) {
++        device const float4 * yb4 = (device const float4 *)(y + ib * QK_K + 32 * htg);
++        const float4 y0 = yb4[0];
++        const float4 y1 = yb4[1];
++        const float4 y2 = yb4[2];
++        const float4 y3 = yb4[3];
++        const float4 y4 = yb4[4];
++        const float4 y5 = yb4[5];
++        const float4 y6 = yb4[6];
++        const float4 y7 = yb4[7];
++
++        FOR_UNROLL (short row = 0; row < NR0; ++row) {
++            device const block_iq4_xs & xb = ax[row][ib];
++            const float d = (htg < 4) ? (float)xb.d : (float)as_type<half>(xb.scales_h);
++            device const uint8_t * qs = xb.qs + 16 * htg;
++
++            float acc = 0.f;
++            acc += dot(y0, float4(half4(float4(half4(sbook[qs[ 0]], sbook[qs[ 1]])) * d)));
++            acc += dot(y1, float4(half4(float4(half4(sbook[qs[ 2]], sbook[qs[ 3]])) * d)));
++            acc += dot(y2, float4(half4(float4(half4(sbook[qs[ 4]], sbook[qs[ 5]])) * d)));
++            acc += dot(y3, float4(half4(float4(half4(sbook[qs[ 6]], sbook[qs[ 7]])) * d)));
++            acc += dot(y4, float4(half4(float4(half4(sbook[qs[ 8]], sbook[qs[ 9]])) * d)));
++            acc += dot(y5, float4(half4(float4(half4(sbook[qs[10]], sbook[qs[11]])) * d)));
++            acc += dot(y6, float4(half4(float4(half4(sbook[qs[12]], sbook[qs[13]])) * d)));
++            acc += dot(y7, float4(half4(float4(half4(sbook[qs[14]], sbook[qs[15]])) * d)));
++            sumf[row] += acc;
++        }
++    }
++
++    device float * dst_f32 = (device float *)dst + (uint64_t)im * args.ne0 * args.ne1 + (uint64_t)r1 * args.ne0;
+     for (int row = 0; row < NR0 && first_row + row < args.ne0; ++row) {
+         float sum_all = simd_sum(sumf[row]);
+         if (tiisg == 0) {
+@@ -3135,89 +3127,77 @@ void kernel_mul_mv_tq2_0_f32_impl(
+         ushort tiisg,
+         ushort sgitg) {
+     const short NSG = FC_mul_mv_nsg;
+-
+-    const int nb = args.ne00/QK_K;
++    const int nb = args.ne00 / QK_K;
+ 
+     const int r0 = tgpig.x;
+     const int r1 = tgpig.y;
+     const int im = tgpig.z;
+-
+     const int first_row = (r0 * NSG + sgitg) * nr0;
+ 
+-    const uint i12 = im%FC_mul_mv_ne12;
+-    const uint i13 = im/FC_mul_mv_ne12;
++    const uint i12 = im % FC_mul_mv_ne12;
++    const uint i13 = im / FC_mul_mv_ne12;
+ 
+-    const uint64_t offset1 =        r1*args.nb11 + (i12        )*args.nb12 + (i13        )*args.nb13;
++    const uint64_t offset1 = r1 * args.nb11 + i12 * args.nb12 + i13 * args.nb13;
++    device const float * y = (device const float *)(src1 + offset1);
+ 
+-    device const float * y = (device const float *) (src1 + offset1);
++    threadgroup half4 * sbook = (threadgroup half4 *)shmem;
++    const uint book_id = ((device const block_tq2_0 *)src0)[0].book_id;
++    const uint book_off = book_id * 1024u;
++    const ushort tid = sgitg * 32 + tiisg;
++    const ushort nthreads = NSG * 32;
++    for (ushort idx = tid; idx < 256; idx += nthreads) {
++        const uint c = book_off + idx * 4u;
++        sbook[idx] = half4(as_type<half>(vq_books_d4_u16[c + 0]),
++                           as_type<half>(vq_books_d4_u16[c + 1]),
++                           as_type<half>(vq_books_d4_u16[c + 2]),
++                           as_type<half>(vq_books_d4_u16[c + 3]));
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
+ 
+     device const block_tq2_0 * ax[nr0];
+     for (int row = 0; row < nr0; ++row) {
+-        const uint64_t offset0 = (first_row + row)*args.nb01 + (i12/FC_mul_mv_r2)*args.nb02 + (i13/FC_mul_mv_r3)*args.nb03;
+-        ax[row] = (device const block_tq2_0 *) ((device char *) src0 + offset0);
++        const int r_idx = (first_row + row < args.ne01) ? (first_row + row) : 0;
++        const uint64_t offset0 = r_idx * args.nb01 + (i12 / FC_mul_mv_r2) * args.nb02 + (i13 / FC_mul_mv_r3) * args.nb03;
++        ax[row] = (device const block_tq2_0 *)(src0 + offset0);
+     }
+ 
+     float sumf[nr0] = {0.f};
+ 
+-    // 8 threads per block, NBLOCK blocks per pass, 2 halves per block per pass
+     constexpr short NBLOCK = 4;
+-
+-    constexpr short NB = N_SIMDWIDTH/NBLOCK; // threads per block
+-
+-    const short blk = tiisg / NB;    // 0..NBLOCK-1, block handled by this thread
+-    const short htg = tiisg % NB;    // 0..NB-1, thread within block (0..7)
+-
+-    // byte and y base offsets within the block (32 elements per thread, 4 per byte)
+-    device const float4 * yb4 = (device const float4 *)(y + 4*htg + blk*QK_K);
+-
+-    // hoisted per-byte coefficients (from y) and total y-sum, shared across rows
+-    // ref: https://github.com/ggml-org/llama.cpp/pull/26980
+-    float4 coef[4];
++    constexpr short NB = 32 / NBLOCK;
++    const short blk = tiisg / NB;
++    const short htg = tiisg % NB;
+ 
+     for (int ib = blk; ib < nb; ib += NBLOCK) {
+-        FOR_UNROLL (short h0 = 0; h0 < 2; ++h0) {
+-            const float4 y0 = yb4[ 0 + 32*h0];
+-            const float4 y1 = yb4[ 8 + 32*h0];
+-            const float4 y2 = yb4[16 + 32*h0];
+-            const float4 y3 = yb4[24 + 32*h0];
+-
+-            float sumy = 0.f;
+-            FOR_UNROLL (short j = 0; j < 4; ++j) {
+-                coef[j] = float4(
+-                        y0[j],
+-                        y1[j] - 4.0f*y0[j],
+-                        y2[j] - 4.0f*y1[j],
+-                        y3[j] - 4.0f*y2[j]);
+-
+-                sumy += (y0[j] + y1[j]) + (y2[j] + y3[j]);
+-            }
+-
+-            FOR_UNROLL (short row = 0; row < nr0; ++row) {
+-                device const block_tq2_0 & xb = ax[row][ib];
+-                device const uchar * qs = xb.qs + 4*htg + 32*h0;
+-
+-                float sum = -sumy;
+-                FOR_UNROLL (short j = 0; j < 4; ++j) {
+-                    // express the 2-bit field shifts (v>>2, v>>4, v>>6) as float floor ops
+-                    const float v = (float)qs[j];
+-
+-                    const float f0 = v;
+-                    const float f1 = floor(v*0.25f);    // v>>2
+-                    const float f2 = floor(v*0.0625);   // v>>4
+-                    const float f3 = floor(v*0.015625); // v>>6
+-
+-                    sum += coef[j][0]*f0 + coef[j][1]*f1 + coef[j][2]*f2 + coef[j][3]*f3;
+-                }
+-
+-                sumf[row] += xb.d * sum;
+-            }
+-        }
+-
+-        yb4 += QK_K * NBLOCK / 4;
+-    }
+-
+-    device float * dst_f32 = (device float *) dst + (uint64_t)im*args.ne0*args.ne1 + (uint64_t)r1*args.ne0;
+-
++        device const float4 * yb4 = (device const float4 *)(y + ib * QK_K + 32 * htg);
++        const float4 y0 = yb4[0];
++        const float4 y1 = yb4[1];
++        const float4 y2 = yb4[2];
++        const float4 y3 = yb4[3];
++        const float4 y4 = yb4[4];
++        const float4 y5 = yb4[5];
++        const float4 y6 = yb4[6];
++        const float4 y7 = yb4[7];
++
++        FOR_UNROLL (short row = 0; row < nr0; ++row) {
++            device const block_tq2_0 & xb = ax[row][ib];
++            const float d = (htg < 4) ? (float)xb.d : (float)xb.d1;
++            device const uint8_t * qs = xb.qs + 8 * htg;
++
++            float acc = 0.f;
++            acc += dot(y0, float4(half4(float4(sbook[qs[0]]) * d)));
++            acc += dot(y1, float4(half4(float4(sbook[qs[1]]) * d)));
++            acc += dot(y2, float4(half4(float4(sbook[qs[2]]) * d)));
++            acc += dot(y3, float4(half4(float4(sbook[qs[3]]) * d)));
++            acc += dot(y4, float4(half4(float4(sbook[qs[4]]) * d)));
++            acc += dot(y5, float4(half4(float4(sbook[qs[5]]) * d)));
++            acc += dot(y6, float4(half4(float4(sbook[qs[6]]) * d)));
++            acc += dot(y7, float4(half4(float4(sbook[qs[7]]) * d)));
++            sumf[row] += acc;
++        }
++    }
++
++    device float * dst_f32 = (device float *)dst + (uint64_t)im * args.ne0 * args.ne1 + (uint64_t)r1 * args.ne0;
+     for (int row = 0; row < nr0; ++row) {
+         const float tot = simd_sum(sumf[row]);
+         if (tiisg == 0 && first_row + row < args.ne01) {
+@@ -3232,11 +3212,12 @@ kernel void kernel_mul_mv_tq2_0_f32(
+         device const char * src0,
+         device const char * src1,
+         device       char * dst,
++        threadgroup  char * shmem [[threadgroup(0)]],
+         uint3  tgpig[[threadgroup_position_in_grid]],
+         ushort tiisg[[thread_index_in_simdgroup]],
+         ushort sgitg[[simdgroup_index_in_threadgroup]]) {
+ 
+-    kernel_mul_mv_tq2_0_f32_impl<N_R0_TQ2_0, constant ggml_metal_kargs_mul_mv &>(args, src0, src1, dst, nullptr, tgpig, tiisg, sgitg);
++    kernel_mul_mv_tq2_0_f32_impl<N_R0_TQ2_0, constant ggml_metal_kargs_mul_mv &>(args, src0, src1, dst, shmem, tgpig, tiisg, sgitg);
+ }
+ 
+ //
+diff --git a/ggml/src/ggml-quants.c b/ggml/src/ggml-quants.c
+index 7750a72..8c93911 100644
+--- a/ggml/src/ggml-quants.c
++++ b/ggml/src/ggml-quants.c
+@@ -2468,17 +2468,22 @@ void dequantize_row_tq1_0(const block_tq1_0 * GGML_RESTRICT x, float * GGML_REST
+ void dequantize_row_tq2_0(const block_tq2_0 * GGML_RESTRICT x, float * GGML_RESTRICT y, int64_t k) {
+     assert(k % QK_K == 0);
+     const int64_t nb = k / QK_K;
+-
+     for (int64_t i = 0; i < nb; ++i) {
+-
+-        const float d = GGML_FP16_TO_FP32(x[i].d);
+-
+-        for (size_t j = 0; j < sizeof(x->qs); j += 32) {
+-            for (size_t l = 0; l < 4; ++l) {
+-                for (size_t m = 0; m < 32; ++m) {
+-                    int8_t q = (x[i].qs[j + m] >> (l*2)) & 3;
+-                    *y++ = (float) (q - 1) * d;
+-                }
++        const float d0 = GGML_FP16_TO_FP32(x[i].d);
++        const float d1 = GGML_FP16_TO_FP32(x[i].d1);
++        const uint16_t * book = vq_books_d4_u16 + (size_t)x[i].book_id * 1024;
++        for (int j = 0; j < 32; ++j) {
++            const uint16_t * bc = book + (size_t)x[i].qs[j] * 4;
++            for (int m = 0; m < 4; ++m) {
++                const ggml_fp16_t h = GGML_FP32_TO_FP16(GGML_FP16_TO_FP32(bc[m]) * d0);
++                *y++ = GGML_FP16_TO_FP32(h);
++            }
++        }
++        for (int j = 32; j < 64; ++j) {
++            const uint16_t * bc = book + (size_t)x[i].qs[j] * 4;
++            for (int m = 0; m < 4; ++m) {
++                const ggml_fp16_t h = GGML_FP32_TO_FP16(GGML_FP16_TO_FP32(bc[m]) * d1);
++                *y++ = GGML_FP16_TO_FP32(h);
+             }
+         }
+     }
+@@ -2744,22 +2749,25 @@ void dequantize_row_iq4_nl(const block_iq4_nl * GGML_RESTRICT x, float * GGML_RE
+ void dequantize_row_iq4_xs(const block_iq4_xs * GGML_RESTRICT x, float * GGML_RESTRICT y, int64_t k) {
+     assert(k % QK_K == 0);
+     const int64_t nb = k / QK_K;
+-
+-    for (int i = 0; i < nb; i++) {
+-
+-        const uint8_t * qs = x[i].qs;
+-
+-        const float d = GGML_FP16_TO_FP32(x[i].d);
+-
+-        for (int ib = 0; ib < QK_K/32; ++ib) {
+-            const int ls = ((x[i].scales_l[ib/2] >> 4*(ib%2)) & 0xf) | (((x[i].scales_h >> 2*ib) & 3) << 4);
+-            const float dl = d * (ls - 32);
+-            for (int j = 0; j < 16; ++j) {
+-                y[j+ 0] = dl * kvalues_iq4nl[qs[j] & 0xf];
+-                y[j+16] = dl * kvalues_iq4nl[qs[j] >>  4];
+-            }
+-            y  += 32;
+-            qs += 16;
++    for (int64_t i = 0; i < nb; ++i) {
++        const float d0 = GGML_FP16_TO_FP32(x[i].d);
++        ggml_fp16_t d1_h;
++        memcpy(&d1_h, &x[i].scales_h, sizeof(ggml_fp16_t));
++        const float d1 = GGML_FP16_TO_FP32(d1_h);
++        const uint16_t * book = vq_books_d2_u16 + (size_t)x[i].scales_l[0] * 512;
++        for (int j = 0; j < 64; ++j) {
++            const uint16_t * bc = book + (size_t)x[i].qs[j] * 2;
++            for (int m = 0; m < 2; ++m) {
++                const ggml_fp16_t h = GGML_FP32_TO_FP16(GGML_FP16_TO_FP32(bc[m]) * d0);
++                *y++ = GGML_FP16_TO_FP32(h);
++            }
++        }
++        for (int j = 64; j < 128; ++j) {
++            const uint16_t * bc = book + (size_t)x[i].qs[j] * 2;
++            for (int m = 0; m < 2; ++m) {
++                const ggml_fp16_t h = GGML_FP32_TO_FP16(GGML_FP16_TO_FP32(bc[m]) * d1);
++                *y++ = GGML_FP16_TO_FP32(h);
++            }
+         }
+     }
+ }
