@@ -2,6 +2,8 @@
 
 Three standalone F16 GGUF checkpoints trace different approaches to tool use in Qwen3-0.6B. WSP38 combines manual edits with supervised adaptation. v3-C7 explores targeted repair with explicit preservation constraints. semantic08 takes a separate branch from v2 and adapts one matrix to preserve successful single-turn behavior.
 
+[Browse the three model cards and GGUF downloads on Hugging Face.](https://huggingface.co/collections/rexarrior/qwen-lab-tool-use-weight-editing-6af09fdd9ba5237bda92dd06)
+
 | Checkpoint and method | HF weights | A6 /48 | BFCL single-turn /3641 | Multi-turn /800 | Memory /465 | Format variants /5200 | API-Bank /744 | IFEval strict /541 |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | Original Qwen3-0.6B | [Upstream](https://huggingface.co/Qwen/Qwen3-0.6B) | 24 | 2463 | 24 | 17 | 1082 | 133 | 315 |
